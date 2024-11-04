@@ -1,0 +1,19 @@
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: container-test
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpwd
+      MYSQL_DATABASE: dbtest
+      MYSQL_USER: dbtester
+      MYSQL_PASSWORD: password
+    ports:
+      - "12345:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+volumes:
+  mysql_data:
+    driver: local

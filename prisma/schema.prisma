@@ -1,0 +1,108 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider          = "mysql"
+  url               = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+}
+
+model User {
+  id             Int             @id @default(autoincrement())
+  username       String          @unique
+  password       String
+  email          String
+  trust_score    Int?
+  created_at     DateTime?       @default(now())
+  updated_at     DateTime?       @updatedAt
+  posts          Post[]
+  comments       Comment[]
+  participations Participation[]
+  fromTrusts     editTrust[]     @relation("FromUser")
+  toTrusts       editTrust[]     @relation("ToUser")
+  profile        UserProfile?
+
+  @@unique([email])
+}
+
+model UserProfile {
+  user_id       Int     @id
+  introduce     String?
+  profile_image String?
+  joined_trades Int?
+  active_trades Int?
+
+  user User @relation(fields: [user_id], references: [id])
+}
+
+model Post {
+  id            Int       @id @default(autoincrement())
+  title         String
+  content       String?
+  unit_quantity Int
+  image_url     String?
+  deadline      DateTime?
+  author_id     Int
+  created_at    DateTime? @default(now())
+  updated_at    DateTime? @updatedAt
+
+  author         User            @relation(fields: [author_id], references: [id])
+  comments       Comment[]
+  participations Participation[]
+  trusts         editTrust[]
+
+  @@index([author_id])
+}
+
+model Comment {
+  id         Int       @id @default(autoincrement())
+  post_id    Int
+  author_id  Int
+  content    String?
+  created_at DateTime? @default(now())
+  updated_at DateTime? @updatedAt
+
+  post   Post @relation(fields: [post_id], references: [id])
+  author User @relation(fields: [author_id], references: [id])
+
+  @@index([post_id])
+  @@index([author_id])
+}
+
+model Participation {
+  id                 Int       @id @default(autoincrement())
+  post_id            Int
+  user_id            Int
+  quantity           Int
+  participation_date DateTime?
+
+  post Post @relation(fields: [post_id], references: [id])
+  user User @relation(fields: [user_id], references: [id])
+
+  @@index([post_id])
+  @@index([user_id])
+}
+
+model editTrust {
+  id               Int       @id @default(autoincrement())
+  from_user_id     Int
+  to_user_id       Int
+  post_id          Int
+  trust_change     Int
+  transaction_date DateTime?
+
+  fromUser User @relation("FromUser", fields: [from_user_id], references: [id])
+  toUser   User @relation("ToUser", fields: [to_user_id], references: [id])
+  post     Post @relation(fields: [post_id], references: [id])
+
+  @@index([from_user_id])
+  @@index([to_user_id])
+  @@index([post_id])
+}
