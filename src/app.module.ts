@@ -1,25 +1,21 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { PrismaService } from './prisma.service';
-import { UserService } from './user.service';
-import { PostService } from './post.service';
-import { JwtModule } from '@nestjs/jwt';
-import { PassportModule } from '@nestjs/passport';
-import { JwtStrategy } from './jwt.strategy';
+import { AuthModule } from './auth/auth.module';
+import { UserModule } from './user/user.module';
+import { PostModule } from './post/post.module';
+import { CommentModule } from './comment/comment.module';
+import { ParticipationModule } from './participation/paticipation.module';
+import { TrustScoreModule } from './trust-score/trust-score.module';
+import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
   imports: [
-    PassportModule.register({ defaultStrategy: 'jwt' }),
-    JwtModule.register({
-      secret: 'Secret1234',
-      signOptions: {
-        expiresIn: 60 * 60,
-      },
-    }),
+    AuthModule, // 인증 모듈
+    UserModule, // 사용자 및 프로필 모듈
+    PostModule, // 게시글 모듈
+    CommentModule, // 댓글 모듈
+    ParticipationModule, // 참여 및 참여자 수 모듈
+    TrustScoreModule, // 신뢰 점수 모듈
+    PrismaModule, // Prisma ORM 모듈
   ],
-  controllers: [AppController],
-  providers: [AppService, PrismaService, UserService, PostService, JwtStrategy],
-  exports: [JwtStrategy, PassportModule],
 })
 export class AppModule {}
