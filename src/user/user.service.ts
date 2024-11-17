@@ -1,24 +1,56 @@
 // src/user/user.service.ts
 
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcrypt';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class UserService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly configService: ConfigService,
+  ) {}
 
   // 새로운 사용자를 생성하며, 비밀번호를 bcrypt로 암호화하여 저장
   async createUser(createUserDto: CreateUserDto) {
+    // 이메일과 닉네임 중복 확인
+    const existingUser = await this.prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: createUserDto.email },
+          { nickname: createUserDto.nickname },
+        ],
+      },
+    });
+
+    if (existingUser) {
+      throw new ConflictException('The email or nickname is already in use.');
+    }
+
+    const profileImageUrl =
+      createUserDto.profileImageUrl ||
+      this.configService.get<string>('DEFAULT_PROFILE_IMAGE_URL');
+
     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
     return this.prisma.user.create({
       data: {
         ...createUserDto,
         password: hashedPassword,
+        profileImageUrl,
       },
     });
+  }
+
+  // 모든 사용자 조회
+  async getAllUsers() {
+    return this.prisma.user.findMany();
   }
 
   // ID로 사용자를 조회하며, 존재하지 않을 경우 예외를 발생
@@ -32,6 +64,20 @@ export class UserService {
   async updateUser(id: number, updateUserDto: UpdateUserDto) {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) throw new NotFoundException(`User with ID ${id} not found`);
+
+    const existingUser = await this.prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: updateUserDto.email, id: { not: id } },
+          { nickname: updateUserDto.nickname, id: { not: id } },
+        ],
+      },
+    });
+
+    if (existingUser) {
+      throw new ConflictException('The email or nickname is already in use.');
+    }
+
     return this.prisma.user.update({
       where: { id },
       data: updateUserDto,

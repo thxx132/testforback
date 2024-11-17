@@ -7,39 +7,39 @@ import { PrismaService } from '../prisma/prisma.service';
 export class TrustScoreService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async checkParticipation(fromUserProfileId: number, toUserProfileId: number) {
+  async checkParticipation(fromUserId: number, toUserId: number) {
     const participations = await this.prisma.participation.findMany({
       where: {
-        userProfileId: { in: [fromUserProfileId, toUserProfileId] },
+        userId: { in: [fromUserId, toUserId] },
       },
     });
     return participations.length >= 2;
   }
 
-  async findExistingTrustScore(fromUserProfileId: number, toUserProfileId: number) {
+  async findExistingTrustScore(fromUserId: number, toUserId: number) {
     return this.prisma.trustScore.findFirst({
       where: {
-        fromUserProfileId,
-        toUserProfileId,
+        fromUserId,
+        toUserId,
       },
     });
   }
 
-  // 트러스트 점수 업데이트 (score를 활용해 toUserProfileId에 반영)
-  async updateTrustScore(fromUserProfileId: number, toUserProfileId: number, score: number) {
+  // 트러스트 점수 업데이트 (score를 활용해 toUserId에 반영)
+  async updateTrustScore(fromUserId: number, toUserId: number, score: number) {
     return this.prisma.$transaction(async (prisma) => {
       // TrustScore 테이블에 기록 추가
       await prisma.trustScore.create({
         data: {
-          fromUserProfileId,
-          toUserProfileId,
+          fromUserId,
+          toUserId,
           score,
         },
       });
 
-      // toUserProfileId의 trustScore에 score 값 반영
+      // toUserId의 trustScore에 score 값 반영
       await prisma.user.update({
-        where: { id: toUserProfileId },
+        where: { id: toUserId },
         data: {
           trustScore: { increment: score },
         },

@@ -14,4 +14,12 @@ export class UpdateUserDto {
   @IsEmail()
   @IsOptional()
   email?: string;
+
+  @IsString()
+  @IsOptional()
+  nickname?: string;
+
+  @IsString()
+  @IsOptional()
+  profileImageUrl?: string;
 }

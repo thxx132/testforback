@@ -5,7 +5,7 @@ import { IsInt, IsNotEmpty, Min, Max } from 'class-validator';
 export class UpdateTrustScoreDto {
   @IsInt()
   @IsNotEmpty()
-  toUserProfileId: number; // 점수를 받는 사용자 프로필 ID
+  toUserId: number; // 점수를 받는 사용자 프로필 ID
 
   @IsInt()
   @Min(-5)

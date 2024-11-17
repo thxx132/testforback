@@ -24,10 +24,10 @@ export class ParticipationController {
     @Body() createParticipationDto: CreateParticipationDto,
     @Request() req,
   ) {
-    const userProfileId = req.user.userId;
+    const userId = req.user.userId;
     return this.participationService.participate(
       createParticipationDto,
-      userProfileId,
+      userId,
     );
   }
 

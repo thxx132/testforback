@@ -22,20 +22,17 @@ export class TrustScoreController {
     @Body() updateTrustScoreDto: UpdateTrustScoreDto,
     @Request() req,
   ) {
-    const fromUserProfileId = req.user.userId;
-    const { toUserProfileId, score } = updateTrustScoreDto;
+    const fromUserId = req.user.userId;
+    const { toUserId, score } = updateTrustScoreDto;
 
     // 자기 자신에게 점수를 줄 수 없음
-    if (fromUserProfileId === toUserProfileId) {
+    if (fromUserId === toUserId) {
       throw new BadRequestException('You cannot rate yourself');
     }
 
     // 같은 거래에 참여했는지 확인
     const participatedTogether =
-      await this.trustScoreService.checkParticipation(
-        fromUserProfileId,
-        toUserProfileId,
-      );
+      await this.trustScoreService.checkParticipation(fromUserId, toUserId);
     if (!participatedTogether) {
       throw new BadRequestException(
         'Both users must have participated in the same post',
@@ -44,19 +41,12 @@ export class TrustScoreController {
 
     // 중복 점수 방지 확인
     const existingTrustScore =
-      await this.trustScoreService.findExistingTrustScore(
-        fromUserProfileId,
-        toUserProfileId,
-      );
+      await this.trustScoreService.findExistingTrustScore(fromUserId, toUserId);
     if (existingTrustScore) {
       throw new BadRequestException('You have already rated this user');
     }
 
     // 점수 업데이트 요청, score 값을 포함하여 호출
-    return this.trustScoreService.updateTrustScore(
-      fromUserProfileId,
-      toUserProfileId,
-      score,
-    );
+    return this.trustScoreService.updateTrustScore(fromUserId, toUserId, score);
   }
 }

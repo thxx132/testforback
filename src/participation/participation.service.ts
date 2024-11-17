@@ -16,14 +16,14 @@ export class ParticipationService {
   // 참여 기능 (트랜잭션 적용 및 중복 참여 방지)
   async participate(
     createParticipationDto: CreateParticipationDto,
-    userProfileId: number,
+    userId: number,
   ) {
     const { postId, quantity } = createParticipationDto;
 
     // 중복 참여 방지
     const existingParticipation = await this.prisma.participation.findUnique({
       where: {
-        postId_userProfileId: { postId, userProfileId },
+        postId_userId: { postId, userId },
       },
     });
     if (existingParticipation) {
@@ -32,10 +32,15 @@ export class ParticipationService {
       );
     }
 
+    // post 없을 때 에러
     const post = await this.prisma.post.findUnique({ where: { id: postId } });
     if (!post)
       throw new BadRequestException(`Post with ID ${postId} not found`);
-
+    // deadline 지났을 때 에러
+    if (post.deadline && new Date(post.deadline) < new Date()) {
+      throw new BadRequestException('Participation is closed for this post.');
+    }
+    // quantity가 unitquantity의 배수가 아닐 때 에러
     if (quantity % post.unitQuantity !== 0) {
       throw new BadRequestException(
         `Quantity must be a multiple of ${post.unitQuantity}`,
@@ -47,7 +52,7 @@ export class ParticipationService {
       await prisma.participation.create({
         data: {
           postId,
-          userProfileId,
+          userId,
           quantity,
         },
       });
@@ -63,24 +68,33 @@ export class ParticipationService {
   // 참여 취소 기능 (트랜잭션 적용 및 중복 취소 방지)
   async cancelParticipation(
     cancelParticipationDto: CancelParticipationDto,
-    userProfileId: number,
+    userId: number,
   ) {
     const { postId } = cancelParticipationDto;
 
     const participation = await this.prisma.participation.findUnique({
       where: {
-        postId_userProfileId: { postId, userProfileId },
+        postId_userId: { postId, userId },
       },
     });
+    // 취소하려는 participation이 존재하지 않을 때 에러
     if (!participation)
       throw new BadRequestException(
         `No participation found for post ${postId} to cancel`,
       );
 
+    // deadline 지났을 때 에러
+    const post = await this.prisma.post.findUnique({ where: { id: postId } });
+    if (post.deadline && new Date(post.deadline) < new Date()) {
+      throw new BadRequestException(
+        'Participation cancellation is closed for this post.',
+      );
+    }
+
     await this.prisma.$transaction(async (prisma) => {
       await prisma.participation.delete({
         where: {
-          postId_userProfileId: { postId, userProfileId },
+          postId_userId: { postId, userId },
         },
       });
 
