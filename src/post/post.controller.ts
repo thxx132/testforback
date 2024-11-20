@@ -12,15 +12,22 @@ import {
   UseGuards,
   Request,
   ForbiddenException,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
 import { PostService } from './post.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt.guard';
+import { AwsService } from '../aws/aws.service';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('posts')
 export class PostController {
-  constructor(private readonly postService: PostService) {}
+  constructor(
+    private readonly postService: PostService,
+    private readonly awsService: AwsService,
+  ) {}
 
   // 모든 게시글 조회 (인증 필요 없음)
   @Get()
@@ -49,22 +56,49 @@ export class PostController {
   // 게시글 생성 (인증 필요)
   @UseGuards(JwtAuthGuard)
   @Post()
-  async createPost(@Body() createPostDto: CreatePostDto, @Request() req) {
+  @UseInterceptors(FileInterceptor('image'))
+  async createPost(
+    @Body() createPostDto: CreatePostDto,
+    @Request() req,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
     const userId = req.user.userId;
-    return this.postService.createPost(createPostDto, userId);
+
+    let imageUrl = null;
+    if (file) {
+      imageUrl = await this.awsService.uploadFile(
+        file.buffer, // 파일 데이터
+        'posts', // S3 폴더 이름
+        file.mimetype, // 파일 MIME 타입
+      );
+    }
+
+    return this.postService.createPost(createPostDto, userId, imageUrl);
   }
 
   // 게시글 수정 (인증 필요, 작성자만 접근 가능)
   @UseGuards(JwtAuthGuard)
   @Patch(':id')
+  @UseInterceptors(FileInterceptor('image'))
   async updatePost(
     @Param('id') id: number,
     @Body() updatePostDto: UpdatePostDto,
     @Request() req,
+    @UploadedFile() file: Express.Multer.File,
   ) {
     const userId = req.user.userId;
     await this.checkPostOwnership(id, userId);
-    return this.postService.updatePost(id, updatePostDto);
+
+    let imageUrl = null;
+    if (file) {
+      imageUrl = await this.awsService.uploadFile(
+        file.buffer,
+        'posts',
+        file.mimetype,
+      );
+    }
+
+    return this.postService.updatePost(id, updatePostDto, imageUrl);
   }
 
   // 게시글 삭제 (인증 필요, 작성자만 접근 가능)

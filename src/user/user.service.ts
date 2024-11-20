@@ -10,12 +10,14 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
+import { AwsService } from '../aws/aws.service';
 
 @Injectable()
 export class UserService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
+    private readonly awsService: AwsService,
   ) {}
 
   // 새로운 사용자를 생성하며, 비밀번호를 bcrypt로 암호화하여 저장
@@ -61,9 +63,22 @@ export class UserService {
   }
 
   // ID로 사용자를 조회하여 정보 업데이트, 사용자 존재 여부를 확인 후 진행
-  async updateUser(id: number, updateUserDto: UpdateUserDto) {
+  async updateUser(
+    id: number,
+    updateUserDto: UpdateUserDto,
+    file?: Express.Multer.File,
+  ) {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) throw new NotFoundException(`User with ID ${id} not found`);
+
+    if (file) {
+      const uploadedImageUrl = await this.awsService.uploadFile(
+        file.buffer,
+        'user-profiles',
+        file.mimetype,
+      );
+      updateUserDto.profileImageUrl = uploadedImageUrl; // 파일 URL 업데이트
+    }
 
     const existingUser = await this.prisma.user.findFirst({
       where: {

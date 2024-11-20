@@ -43,22 +43,34 @@ export class PostService {
   }
 
   // 게시글 생성
-  async createPost(createPostDto: CreatePostDto, userId: number) {
+  async createPost(
+    createPostDto: CreatePostDto,
+    userId: number,
+    imageUrl: string | null,
+  ) {
     return this.prisma.post.create({
       data: {
         ...createPostDto,
         authorId: userId,
+        imageUrl,
       },
     });
   }
 
   // 게시글 수정
-  async updatePost(id: number, updatePostDto: UpdatePostDto) {
+  async updatePost(
+    id: number,
+    updatePostDto: UpdatePostDto,
+    imageUrl: string | null,
+  ) {
     const post = await this.getPostById(id);
     if (!post) throw new NotFoundException(`Post with ID ${id} not found`);
     return this.prisma.post.update({
       where: { id },
-      data: updatePostDto,
+      data: {
+        ...updatePostDto,
+        imageUrl: imageUrl || post.imageUrl,
+      },
     });
   }
 

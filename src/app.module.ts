@@ -6,6 +6,7 @@ import { CommentModule } from './comment/comment.module';
 import { ParticipationModule } from './participation/paticipation.module';
 import { TrustScoreModule } from './trust-score/trust-score.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
   imports: [
@@ -16,6 +17,10 @@ import { PrismaModule } from './prisma/prisma.module';
     ParticipationModule, // 참여 및 참여자 수 모듈
     TrustScoreModule, // 신뢰 점수 모듈
     PrismaModule, // Prisma ORM 모듈
+    ConfigModule.forRoot({
+      envFilePath: `env/.env.${process.env.NODE_ENV || 'development'}`,
+      isGlobal: true, // 모든 모듈에서 환경 변수를 접근 가능하게 함
+    }),
   ],
 })
 export class AppModule {}

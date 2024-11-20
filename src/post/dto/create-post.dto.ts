@@ -7,6 +7,7 @@ import {
   IsInt,
   IsDateString,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreatePostDto {
   @IsString()
@@ -27,6 +28,7 @@ export class CreatePostDto {
 
   @IsInt()
   @IsNotEmpty()
+  @Type(() => Number)
   unitQuantity: number;
 
   @IsDateString()
